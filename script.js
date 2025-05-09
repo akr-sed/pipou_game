@@ -1,9 +1,21 @@
 // Game canvas setup
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
-const startBtn = document.getElementById('start-btn');
 const scoreElement = document.getElementById('score');
 const swipeInstructions = document.getElementById('swipe-instructions');
+
+// Game settings - IMPORTANT: Define these variables before using them
+let gridSize = 50; // Default value that will be updated
+let gridWidth;
+let gridHeight;
+let snake = [];
+let food = {};
+let direction = 'right';
+let nextDirection = 'right';
+let gameRunning = false;
+let gameSpeed = 170; // milliseconds
+let score = 0;
+let gameLoop;
 
 // Set canvas size based on viewport
 function resizeCanvas() {
@@ -22,9 +34,20 @@ function resizeCanvas() {
 // Initial canvas sizing
 resizeCanvas();
 
+// Update grid dimensions - Now this function can safely use gridSize
+function updateGridDimensions() {
+    gridSize = canvas.width / 20; // 20 cells across
+    gridWidth = Math.floor(canvas.width / gridSize);
+    gridHeight = Math.floor(canvas.height / gridSize);
+    console.log("Grid dimensions updated:", gridWidth, "x", gridHeight, "gridSize:", gridSize);
+}
+
+// Call update on resize
+updateGridDimensions();
+
 // Detect mobile device
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-if (isMobile) {
+if (isMobile && swipeInstructions) {
     swipeInstructions.classList.remove('hidden');
     setTimeout(() => {
         swipeInstructions.classList.add('visible');
@@ -34,30 +57,31 @@ if (isMobile) {
     }, 500);
 }
 
-// Game settings
-let gridSize; // Will be calculated dynamically
-let gridWidth;
-let gridHeight;
-
-// Update grid dimensions
-function updateGridDimensions() {
-    gridSize = canvas.width / 20; // 20 cells across
-    gridWidth = canvas.width / gridSize;
-    gridHeight = canvas.height / gridSize;
+// Create fallback images if custom ones are not available
+function createFallbackSnakeHead() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 30;
+    tempCanvas.height = 30;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.fillStyle = '#4CAF50';
+    tempCtx.fillRect(0, 0, 30, 30);
+    tempCtx.fillStyle = 'black';
+    tempCtx.fillRect(5, 5, 5, 5); // Eye
+    tempCtx.fillRect(20, 5, 5, 5); // Eye
+    return tempCanvas.toDataURL();
 }
 
-// Call update on resize
-updateGridDimensions();
-
-// Game state
-let snake = [];
-let food = {};
-let direction = 'right';
-let nextDirection = 'right';
-let gameRunning = false;
-let gameSpeed = 170; // milliseconds
-let score = 0;
-let gameLoop;
+function createFallbackFood() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 30;
+    tempCanvas.height = 30;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.fillStyle = 'red';
+    tempCtx.beginPath();
+    tempCtx.arc(15, 15, 12, 0, Math.PI * 2);
+    tempCtx.fill();
+    return tempCanvas.toDataURL();
+}
 
 // Custom assets - Replace these file paths with your own custom images/sounds
 // ===================================================================
@@ -65,19 +89,35 @@ let gameLoop;
 // ===================================================================
 const snakeHeadImage = new Image();
 snakeHeadImage.src = 'pipou.jpg'; // REPLACE WITH YOUR CUSTOM SNAKE HEAD IMAGE
+snakeHeadImage.onerror = function() {
+    console.log("Failed to load snake head image, using fallback");
+    this.src = createFallbackSnakeHead();
+};
 
 const foodImage = new Image();
 foodImage.src = 'maninou.jpg'; // REPLACE WITH YOUR CUSTOM FOOD IMAGE
+foodImage.onerror = function() {
+    console.log("Failed to load food image, using fallback");
+    this.src = createFallbackFood();
+};
 
 const eatSound = new Audio();
 eatSound.src = 'bayna.mp3'; // REPLACE WITH YOUR CUSTOM EATING SOUND
+eatSound.onerror = function() {
+    console.log("Failed to load eat sound, sound effects will be disabled");
+};
 
 const gameOverSound = new Audio();
 gameOverSound.src = 'pipou_sound.mp3'; // REPLACE WITH YOUR CUSTOM GAME OVER SOUND
+gameOverSound.onerror = function() {
+    console.log("Failed to load game over sound, sound effects will be disabled");
+};
 // ===================================================================
 
-// Initialize the game
+// Initialize the game - this function is called when the Start button is clicked
 function initGame() {
+    console.log("Game initializing...");
+    
     // Reset game state
     updateGridDimensions(); // Ensure grid is properly sized
     
@@ -98,6 +138,8 @@ function initGame() {
     if (gameLoop) clearInterval(gameLoop);
     gameLoop = setInterval(gameUpdate, gameSpeed);
     gameRunning = true;
+    
+    console.log("Game started!");
 }
 
 // Generate food at a random position
@@ -169,8 +211,12 @@ function gameUpdate() {
         spawnFood();
         
         // Play eating sound
-        eatSound.currentTime = 0;
-        eatSound.play().catch(e => console.log("Audio play error:", e));
+        try {
+            eatSound.currentTime = 0;
+            eatSound.play().catch(e => console.log("Audio play error:", e));
+        } catch (e) {
+            console.log("Error playing sound:", e);
+        }
         
         // Increase game speed slightly
         if (gameSpeed > 60) {
@@ -258,7 +304,12 @@ function render() {
 function gameOver() {
     gameRunning = false;
     clearInterval(gameLoop);
-    gameOverSound.play().catch(e => console.log("Audio play error:", e));
+    
+    try {
+        gameOverSound.play().catch(e => console.log("Audio play error:", e));
+    } catch (e) {
+        console.log("Error playing game over sound:", e);
+    }
     
     // Display game over message
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -386,11 +437,6 @@ function handleSwipe() {
     }
 }
 
-// Start button event listener
-startBtn.addEventListener('click', function() {
-    initGame();
-});
-
 // Handle window resize
 window.addEventListener('resize', function() {
     resizeCanvas();
@@ -409,3 +455,11 @@ document.body.addEventListener('touchmove', function(e) {
 
 // Initial render
 render();
+
+// IMPORTANT: Make sure the button works by using inline method
+document.getElementById('start-btn').onclick = function() {
+    console.log("Start button clicked!");
+    initGame();
+};
+
+console.log("Snake game script fully loaded");

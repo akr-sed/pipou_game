@@ -11,13 +11,15 @@
         <h1>Snake Game</h1>
         <div class="game-info">
             <div class="score">Score: <span id="score">0</span></div>
-            <button id="start-btn">Start Game</button>
+            <button id="start-btn" onclick="initGame()">Start Game</button>
         </div>
         <div class="canvas-container">
             <canvas id="game-canvas"></canvas>
             <div id="swipe-instructions" class="hidden">Swipe to control the snake</div>
         </div>
     </div>
+    
+    <!-- Important: Load the script at the end of the body -->
     <script src="script.js"></script>
 </body>
 </html>
