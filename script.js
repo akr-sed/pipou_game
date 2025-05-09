@@ -13,7 +13,7 @@ let food = {};
 let direction = 'right';
 let nextDirection = 'right';
 let gameRunning = false;
-let gameSpeed = 170; // milliseconds
+let gameSpeed = 220; // milliseconds
 let score = 0;
 let gameLoop;
 
@@ -36,7 +36,7 @@ resizeCanvas();
 
 // Update grid dimensions - Now this function can safely use gridSize
 function updateGridDimensions() {
-    gridSize = canvas.width / 20; // 20 cells across
+    gridSize = canvas.width / 10; // 20 cells across
     gridWidth = Math.floor(canvas.width / gridSize);
     gridHeight = Math.floor(canvas.height / gridSize);
     console.log("Grid dimensions updated:", gridWidth, "x", gridHeight, "gridSize:", gridSize);
